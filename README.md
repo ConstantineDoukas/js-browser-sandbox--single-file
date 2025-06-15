@@ -6,8 +6,11 @@ It's a quick example for local deployment and educational purposes, illustrating
 
 ---
 
-## Demo 
-https://github.com/user-attachments/assets/f160191f-90d4-4eac-8ef6-1f24931f6402
+## Live Demo & Video Walkthrough
+
+[![Browser Sandbox Demo](https://github.com/user-attachments/assets/f160191f-90d4-4eac-8ef6-1f24931f6402)](https://browser-sandbox.netlify.app/)
+
+**Live Application:** [browser-sandbox.netlify.app](https://browser-sandbox.netlify.app/)
 
 ---
 
