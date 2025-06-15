@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Browser Sandbox</title>
+    <style>
+        /* CSS remains the same as before */
+        /* General Body Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+        }
+
+        .url-input-form {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .url-input-form input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            max-width: 600px;
+        }
+
+        .url-input-form button {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .url-input-form button:hover {
+            background-color: #0056b3;
+        }
+
+        .browser-frame-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .browser-bar {
+            background-color: #e8e8e8;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #d0d0d0;
+            position: relative;
+        }
+
+        .browser-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .browser-dot.red { background-color: #ff5f56; }
+        .browser-dot.yellow { background-color: #ffbd2e; }
+        .browser-dot.green { background-color: #27c93f; }
+
+        .browser-address-bar {
+            background-color: #ffffff;
+            border-radius: 5px;
+            flex-grow: 1;
+            padding: 5px 10px;
+            margin-left: 20px;
+            color: #555;
+            font-size: 0.9em;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #sandboxFrame {
+            width: 100%;
+            height: 600px;
+            border: none;
+            background-color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .url-input-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .url-input-form input[type="text"],
+            .url-input-form button {
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            .browser-dot {
+                width: 10px;
+                height: 10px;
+                margin-right: 5px;
+            }
+
+            .browser-address-bar {
+                font-size: 0.8em;
+                margin-left: 10px;
+            }
+
+            #sandboxFrame {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Browser Sandbox</h1>
+        <div class="url-input-form">
+            <input type="text" id="urlInput" placeholder="Enter URL (e.g., https://www.w3schools.com)">
+            <button id="loadUrlButton">Load URL</button>
+        </div>
+        <div class="browser-frame-container">
+            <div class="browser-bar">
+                <span class="browser-dot red"></span>
+                <span class="browser-dot yellow"></span>
+                <span class="browser-dot green"></span>
+                <span class="browser-address-bar" id="displayedUrl"></span>
+            </div>
+            <iframe id="sandboxFrame" srcdoc="<p style='font-family: sans-serif; padding: 20px; text-align: center; color: #555;'>Enter a URL above and click 'Load URL' to start Browse in the sandbox.</p>"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // It's generally good practice to wrap your main JavaScript logic
+        // inside a DOMContentLoaded listener. This ensures that the HTML
+        // elements you're trying to access (like urlInput, sandboxFrame)
+        // have already been parsed and are available in the DOM.
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlInput = document.getElementById('urlInput');
+            const loadUrlButton = document.getElementById('loadUrlButton');
+            const sandboxFrame = document.getElementById('sandboxFrame');
+            const displayedUrl = document.getElementById('displayedUrl');
+
+            function sanitizeUrl(url) {
+                try {
+                    let parsedUrl = new URL(url);
+                    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                        return null;
+                    }
+                    return parsedUrl.href;
+                } catch (e) {
+                    try {
+                        let parsedUrl = new URL('https://' + url);
+                        return parsedUrl.href;
+                    } catch (e2) {
+                        return null;
+                    }
+                }
+            }
+
+            let currentLoadedUrl = '';
+            let loadAttemptTimeoutId;
+
+            // Function to display the specific failure message
+            function displayLoadFailureMessage(url) {
+                sandboxFrame.src = 'about:blank';
+                sandboxFrame.srcdoc = `<p style='font-family: sans-serif; padding: 20px; text-align: center; color: #cc0000;'>
+                    Failed to load ${url}.<br>
+                    This is likely due to the website's security policies (e.g., X-Frame-Options or Content-Security-Policy) preventing it from being embedded in another site.<br>
+                    Try a different URL like https://www.w3schools.com or https://example.com.
+                </p>`;
+                displayedUrl.textContent = "Load Failed: " + url;
+                if (loadAttemptTimeoutId) {
+                    clearTimeout(loadAttemptTimeoutId);
+                    loadAttemptTimeoutId = null;
+                }
+            }
+
+            loadUrlButton.addEventListener('click', () => {
+                let urlToLoad = urlInput.value.trim();
+                urlInput.value = '';
+
+                const sanitized = sanitizeUrl(urlToLoad);
+
+                if (loadAttemptTimeoutId) {
+                    clearTimeout(loadAttemptTimeoutId);
+                }
+
+                if (sanitized) {
+                    currentLoadedUrl = sanitized;
+                    sandboxFrame.srcdoc = `<p style='font-family: sans-serif; padding: 20px; text-align: center; color: #555;'>Loading <span style="font-weight: bold;">${sanitized}</span>...</p>`;
+                    displayedUrl.textContent = sanitized;
+
+                    sandboxFrame.removeAttribute('srcdoc');
+                    sandboxFrame.src = sanitized;
+                    sandboxFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-pointer-lock allow-same-origin allow-top-navigation-by-user-activation');
+
+                    loadAttemptTimeoutId = setTimeout(() => {
+                        if (sandboxFrame.src === currentLoadedUrl) {
+                            displayLoadFailureMessage(currentLoadedUrl);
+                        }
+                    }, 3500);
+                } else {
+                    alert('Please enter a valid URL, starting with http:// or https://');
+                    displayedUrl.textContent = 'Invalid URL';
+                    sandboxFrame.srcdoc = "<p style='font-family: sans-serif; padding: 20px; text-align: center; color: #cc0000;'>Invalid URL provided. Please enter a URL like https://example.com</p>";
+                }
+            });
+
+            urlInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    loadUrlButton.click();
+                }
+            });
+
+            sandboxFrame.onload = () => {
+                if (currentLoadedUrl !== '') {
+                    if (sandboxFrame.src === currentLoadedUrl) {
+                        try {
+                            const iframeLocation = sandboxFrame.contentWindow.location.href;
+
+                            if (iframeLocation === "about:blank" || iframeLocation === "about:srcdoc") {
+                                displayLoadFailureMessage(currentLoadedUrl);
+                            } else {
+                                displayedUrl.textContent = iframeLocation;
+                                if (loadAttemptTimeoutId) {
+                                    clearTimeout(loadAttemptTimeoutId);
+                                    loadAttemptTimeoutId = null;
+                                }
+                            }
+                        } catch (e) {
+                            if (e instanceof SecurityError) {
+                                console.warn("Security Error: Site blocked from embedding by browser policy.", e);
+                                displayLoadFailureMessage(currentLoadedUrl);
+                            } else {
+                                console.error("An unexpected error occurred during iframe onload:", e);
+                                displayLoadFailureMessage(currentLoadedUrl);
+                            }
+                        }
+                    } else if (sandboxFrame.src === 'about:blank' && sandboxFrame.srcdoc.includes("Failed to load")) {
+                        displayedUrl.textContent = "Load Failed: " + currentLoadedUrl;
+                    }
+                }
+            };
+
+            // Initialize the displayed URL to a friendly message on page load,
+            // now safely inside DOMContentLoaded
+            displayedUrl.textContent = "Ready to browse...";
+        }); // End of DOMContentLoaded listener
+    </script>
+</body>
+</html>
