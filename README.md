@@ -6,11 +6,8 @@ It's a quick example for local deployment and educational purposes, illustrating
 
 ---
 
-## Demo Video
-
-See the sandbox in action by clicking the link below. The `demo.mp4` file is included directly in this repository in the `/assets` folder.
-
-[Watch the Demo Video](./assets/demo.mp4)
+## Demo 
+https://github.com/user-attachments/assets/f160191f-90d4-4eac-8ef6-1f24931f6402
 
 ---
 
